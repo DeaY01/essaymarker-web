@@ -62,3 +62,61 @@ export function getPerformanceBand(
 export function countWords(text: string): number {
   return text.trim().split(/\s+/u).filter(Boolean).length;
 }
+
+export interface CoemScores {
+  content: number;
+  organisation: number;
+  expression: number;
+  mechanicalAccuracy: number;
+}
+
+export function getWordCountScoreCap(wordCount: number): number {
+  if (wordCount < 220) return 17;
+  if (wordCount < 350) return 24;
+  if (wordCount < TARGET_MIN_WORDS) return 30;
+  return MAXIMUM_SCORE;
+}
+
+/** Scales scores proportionally, then distributes rounding points by largest remainder. */
+export function scaleScoresToCap(scores: CoemScores, maxTotal: number): CoemScores {
+  const total =
+    scores.content +
+    scores.organisation +
+    scores.expression +
+    scores.mechanicalAccuracy;
+  if (total <= maxTotal || total === 0) return { ...scores };
+
+  const scaled: CoemScores = {
+    content: Math.floor((scores.content * maxTotal) / total),
+    organisation: Math.floor((scores.organisation * maxTotal) / total),
+    expression: Math.floor((scores.expression * maxTotal) / total),
+    mechanicalAccuracy: Math.floor((scores.mechanicalAccuracy * maxTotal) / total),
+  };
+  let remainder =
+    maxTotal - scaled.content - scaled.organisation - scaled.expression - scaled.mechanicalAccuracy;
+  const keys = ['content', 'organisation', 'expression', 'mechanicalAccuracy'] as const;
+  const byLargestRemainder = [...keys].sort((left, right) => {
+    const leftScaled = (scores[left] * maxTotal) / total;
+    const rightScaled = (scores[right] * maxTotal) / total;
+    return rightScaled - Math.floor(rightScaled) - (leftScaled - Math.floor(leftScaled));
+  });
+
+  for (const key of byLargestRemainder) {
+    if (remainder === 0) break;
+    if (scaled[key] < scores[key]) {
+      scaled[key] += 1;
+      remainder -= 1;
+    }
+  }
+
+  return scaled;
+}
+
+export function enforceWordCountScoreLimits(
+  scores: CoemScores,
+  wordCount: number,
+): CoemScores {
+  const expressionCapped =
+    wordCount < 220 ? { ...scores, expression: Math.min(scores.expression, 8) } : scores;
+  return scaleScoresToCap(expressionCapped, getWordCountScoreCap(wordCount));
+}

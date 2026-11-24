@@ -57,10 +57,17 @@ export async function reserveUnit(userId: string): Promise<number | null> {
   return typeof data === 'number' ? data : null;
 }
 
-/** Gives back a unit reserved for a marking that didn't complete. */
-export async function refundUnit(userId: string): Promise<void> {
+/** Gives back a reserved unit and returns the updated balance, or null on failure. */
+export async function refundUnit(userId: string): Promise<number | null> {
   const admin = createSupabaseAdminClient();
-  if (!admin) return;
-  const { error } = await admin.rpc('refund_credit', { p_user_id: userId });
-  if (error) console.error(`Failed to refund a unit for user ${userId}:`, error.message);
+  if (!admin) {
+    console.error('Failed to refund a unit: Supabase admin client is not configured.');
+    return null;
+  }
+  const { data, error } = await admin.rpc('refund_credit', { p_user_id: userId });
+  if (error) {
+    console.error(`Failed to refund a unit for user ${userId}:`, error.message);
+    return null;
+  }
+  return typeof data === 'number' ? data : null;
 }

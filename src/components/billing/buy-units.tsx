@@ -114,8 +114,8 @@ function BuyUnitsContent({ reason, onClose }: { reason?: string; onClose: () => 
         </span>
         <span className="pack-price">{formatNaira(UNIT_PACK.priceNaira)}</span>
         <p>
-          1 unit marks 1 essay. Paying also unlocks Learn and its video lessons
-          for good.
+          1 unit marks 1 essay. Paying also keeps Past questions available for
+          good.
         </p>
       </div>
 

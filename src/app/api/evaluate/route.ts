@@ -119,6 +119,33 @@ export async function POST(request: Request) {
       { abortSignal: request.signal },
     );
 
+    if (evaluation.needsResnap) {
+      unitReserved = false;
+      let refundedCredits: number | null;
+      try {
+        refundedCredits = await refundUnit(user.id);
+      } catch (refundError) {
+        console.error(`Failed to refund a unit after a resnap for user ${user.id}:`, refundError);
+        return errorResponse(
+          "The photos could not be read, and we couldn't confirm that your unit was returned. Please refresh your balance or contact support before trying again.",
+          503,
+        );
+      }
+      if (refundedCredits === null) {
+        return errorResponse(
+          "The photos could not be read, and we couldn't confirm that your unit was returned. Please refresh your balance or contact support before trying again.",
+          503,
+        );
+      }
+
+      const response: MarkedEssayResponse = {
+        ...evaluation,
+        savedReportId: null,
+        creditsRemaining: refundedCredits,
+      };
+      return NextResponse.json(response);
+    }
+
     // Marking succeeded, so the unit is spent. A failed save must not lose the
     // marking the student just waited for, so the report is returned either way.
     unitReserved = false;
@@ -127,11 +154,27 @@ export async function POST(request: Request) {
     return NextResponse.json(response);
   } catch (error) {
     // Marking didn't complete, so the student isn't charged.
-    if (unitReserved) await refundUnit(user.id);
+    let refundFailed = false;
+    if (unitReserved) {
+      unitReserved = false;
+      try {
+        refundFailed = (await refundUnit(user.id)) === null;
+      } catch (refundError) {
+        console.error(`Failed to refund a unit for user ${user.id}:`, refundError);
+        refundFailed = true;
+      }
+    }
 
     if (request.signal.aborted) {
       // The client went away; nobody is listening for this response.
       return new Response(null, { status: 499 });
+    }
+
+    if (refundFailed) {
+      return errorResponse(
+        "Essay marking failed, and we couldn't confirm that your unit was returned. Please refresh your balance or contact support.",
+        503,
+      );
     }
 
     if (error instanceof EvaluationConfigError) {

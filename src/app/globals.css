@@ -2608,13 +2608,41 @@ textarea {
   .auth-brand-inner {
     position: static;
     min-height: 0;
-    gap: 0;
+    gap: 18px;
     padding: 20px 24px;
   }
 
-  .auth-brand-copy,
   .auth-brand-footnote {
     display: none;
+  }
+
+  .auth-brand-copy {
+    display: block;
+  }
+
+  .auth-brand-kicker {
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+
+  .auth-brand-copy h2 {
+    max-width: none;
+    font-size: clamp(24px, 5vw, 32px);
+  }
+
+  .auth-highlights {
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 13px;
+  }
+
+  .auth-highlights li {
+    gap: 8px;
+  }
+
+  .auth-highlights li > span {
+    width: 20px;
+    height: 20px;
   }
 
   .auth-content {

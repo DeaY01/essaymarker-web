@@ -136,9 +136,10 @@ are reserved before the AI call and refunded automatically if marking fails.
 Balances live in `public.profiles` and only the server (service role) can
 change them.
 
-Students buy **50 units for ₦2,000** through Paystack:
+Students buy **60 units for ₦3,000** through Paystack:
 
-1. **Buy units** (header, marking page, My essays, locked Learn page) calls
+1. **Buy units** (header, marking page, My essays, or the locked Past
+   questions page) calls
    `startCheckout`, which records a pending row in `public.payments` and sends
    the student to Paystack's checkout. The amount is fixed on the server.
 2. Paystack calls **`POST /api/paystack/webhook`** on success. The
@@ -220,19 +221,20 @@ also works). There is no toolbar, download or print button, and right-click
 is disabled on the viewer.
 
 Papers live in the **private** Storage bucket `past-questions` (created by the
-migration; signed-in users can read it). Each paper is a row in
+migration). Students with units remaining or a paid account can read them;
+the page checks access and Supabase row/storage policies enforce it. Each paper is a row in
 `public.past_questions`: `exam_body` (`WAEC`/`NECO`), `exam_year`,
 `file_path`, `is_published`.
 
 **Admin: adding a yearly paper**
 
 1. Supabase dashboard → **Storage** → `past-questions` → **Upload file**, and
-   upload the PDF named like `WAEC-2024.pdf`.
+   upload the PDF into its exam-body folder, for example `WAEC/WAEC-2024.pdf`.
 2. Add its row (SQL Editor, or Table Editor → `past_questions` → Insert row):
 
    ```sql
    insert into public.past_questions (exam_body, exam_year, file_path)
-   values ('WAEC', 2024, 'WAEC-2024.pdf');
+   values ('WAEC', 2024, 'WAEC/WAEC-2024.pdf');
    ```
 
 Set `is_published = false` to hide a paper. There is one row per exam body and
