@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { AlertIcon, BookIcon } from "@/components/icons";
+import { BuyUnitsButton, OpenBuyUnitsOnMount } from "@/components/billing/buy-units";
+import { AlertIcon, BookIcon, LockIcon } from "@/components/icons";
 import { PastPaperViewer } from "@/components/past-paper-viewer";
+import { getAccountSummary } from "@/lib/account";
+import { canAccessProtectedContent, formatNaira, UNIT_PACK } from "@/lib/billing";
 import {
   createPaperViewUrl,
   EXAM_BODIES,
@@ -29,7 +32,6 @@ function paperHref(body: ExamBody, year?: number): string {
 }
 
 async function PastQuestions({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  await connection();
   const [papers, params] = await Promise.all([listPastPapers(), searchParams]);
 
   if (papers.length === 0) {
@@ -112,6 +114,40 @@ async function PastQuestions({ searchParams }: { searchParams: Promise<SearchPar
   );
 }
 
+const LOCKED_REASON =
+  "Past questions are available while you have units or a paid account. Buy units to unlock past questions.";
+
+async function GatedPastQuestions({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  await connection();
+  const account = await getAccountSummary();
+
+  if (!account || !canAccessProtectedContent(account)) {
+    return (
+      <div className="card locked-card">
+        <OpenBuyUnitsOnMount reason={LOCKED_REASON} />
+        <span className="locked-icon" aria-hidden="true">
+          <LockIcon size={22} />
+        </span>
+        <h2>Past questions are locked</h2>
+        <p>
+          You’ve used your free units. Buy {UNIT_PACK.units} units for{" "}
+          {formatNaira(UNIT_PACK.priceNaira)} to unlock past questions and keep
+          getting your essays marked.
+        </p>
+        <BuyUnitsButton className="button button-primary" reason={LOCKED_REASON}>
+          Buy units to unlock
+        </BuyUnitsButton>
+      </div>
+    );
+  }
+
+  return <PastQuestions searchParams={searchParams} />;
+}
+
 function PastQuestionsSkeleton() {
   return (
     <div aria-hidden="true">
@@ -133,7 +169,7 @@ export default function PastQuestionsPage({ searchParams }: PageProps<"/past-que
         </p>
       </div>
       <Suspense fallback={<PastQuestionsSkeleton />}>
-        <PastQuestions searchParams={searchParams} />
+        <GatedPastQuestions searchParams={searchParams} />
       </Suspense>
     </main>
   );

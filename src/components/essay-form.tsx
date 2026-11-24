@@ -26,6 +26,7 @@ interface EssayFormProps {
   error: string;
   isSubmitting: boolean;
   authStatus: AuthStatus;
+  resnapReason: string | null;
   /** Units left, or null while unknown. */
   credits: number | null;
   onTopicChange: (value: string) => void;
@@ -43,6 +44,7 @@ export function EssayForm({
   error,
   isSubmitting,
   authStatus,
+  resnapReason,
   credits,
   onTopicChange,
   onAddFiles,
@@ -98,6 +100,19 @@ export function EssayForm({
       </div>
 
       <div className="card-body">
+        {resnapReason && (
+          <div className="alert tone-fair" role="alert" style={{ marginBottom: 20 }}>
+            <AlertIcon />
+            <div>
+              <p className="alert-title">Please retake the unclear photos</p>
+              <p>{resnapReason}</p>
+              <p>
+                0 units were deducted for this attempt. Remove the unclear
+                page(s) below, then choose or take replacement photos.
+              </p>
+            </div>
+          </div>
+        )}
         {isOutOfUnits && (
           <div className="alert tone-fair" style={{ marginBottom: 20 }}>
             <CoinsIcon />

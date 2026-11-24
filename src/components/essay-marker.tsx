@@ -45,6 +45,7 @@ export function EssayMarker({
   const { pages, addFiles, rotate, move, remove, clear } = useEssayPages();
   const [result, setResult] = useState<MarkedEssay | null>(null);
   const [error, setError] = useState("");
+  const [resnapReason, setResnapReason] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const reportRef = useRef<HTMLElement>(null);
@@ -80,6 +81,7 @@ export function EssayMarker({
     });
 
     setError("");
+    setResnapReason(null);
     setResult(null);
     setIsSubmitting(true);
 
@@ -111,6 +113,14 @@ export function EssayMarker({
       if (marked.creditsRemaining !== null) setCredits(marked.creditsRemaining);
       // Refresh server-rendered parts, like the unit balance in the header.
       router.refresh();
+
+      if (marked.needsResnap) {
+        setResnapReason(
+          marked.resnapReason ??
+            "One or more photos are too unclear to read fairly. Please retake them in bright light while holding the camera steady.",
+        );
+        return;
+      }
 
       setResult({
         evaluation: marked,
@@ -147,6 +157,7 @@ export function EssayMarker({
     setTopic("");
     clear();
     setError("");
+    setResnapReason(null);
     setResult(null);
     document.getElementById("topic")?.focus();
   }
@@ -160,6 +171,7 @@ export function EssayMarker({
           error={error}
           isSubmitting={isSubmitting}
           authStatus={authStatus}
+          resnapReason={resnapReason}
           credits={credits}
           onTopicChange={setTopic}
           onAddFiles={addFiles}
