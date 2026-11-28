@@ -87,6 +87,14 @@ Email confirmation is controlled in **Authentication → Providers → Email**.
 With it on, new users get a confirmation link; with it off, they are signed in
 immediately after sign-up.
 
+**Welcome email:** set `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` (a sender verified
+in Brevo), and optionally `BREVO_SENDER_NAME`. Set
+`NEXT_PUBLIC_SITE_URL=https://essay.olearn.com.ng` so the dashboard link points
+to the production app. The welcome email is sent after confirmation or on a
+later sign-in if an earlier send failed. Apply
+`supabase/migrations/20261128000000_welcome_email.sql` in the Supabase SQL
+Editor (or run `supabase db push`) to enable its send-once and retry guard.
+
 **How it works**
 
 - Pages: `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password`.

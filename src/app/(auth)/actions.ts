@@ -9,6 +9,7 @@ import { SUPABASE_NOT_CONFIGURED } from '@/lib/supabase/config';
 import { REFERRAL_COOKIE, normaliseReferralCode } from '@/lib/referral';
 import { getSiteOrigin } from '@/lib/site-url';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { sendWelcomeEmailIfConfirmed } from '@/lib/welcome-email';
 
 export interface AuthFormState {
   status: 'idle' | 'error' | 'success';
@@ -105,7 +106,10 @@ export async function signUp(_previous: AuthFormState, formData: FormData): Prom
   if (referralCode) cookieStore.delete(REFERRAL_COOKIE);
 
   // Email confirmation is turned off in Supabase: the user is signed in already.
-  if (data.session) redirect(next);
+  if (data.session) {
+    if (data.user) await sendWelcomeEmailIfConfirmed(data.user);
+    redirect(next);
+  }
 
   // Same message whether or not the email is already registered, so the form
   // can't be used to find out who has an account.
@@ -129,11 +133,12 @@ export async function signIn(_previous: AuthFormState, formData: FormData): Prom
   const supabase = await createSupabaseServerClient();
   if (!supabase) return { status: 'error', message: SUPABASE_NOT_CONFIGURED, values };
 
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
     return { status: 'error', message: friendlyAuthError(error.message), values };
   }
 
+  if (data.user) await sendWelcomeEmailIfConfirmed(data.user);
   redirect(safeRedirectPath(formData.get('next')));
 }
 

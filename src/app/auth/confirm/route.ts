@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { safeRedirectPath } from '@/lib/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { sendWelcomeEmailIfConfirmed } from '@/lib/welcome-email';
 
 const EMAIL_OTP_TYPES: EmailOtpType[] = ['signup', 'invite', 'magiclink', 'recovery', 'email_change', 'email'];
 
@@ -22,14 +23,22 @@ export async function GET(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
 
   if (supabase) {
+    let verified = false;
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (!error) return NextResponse.redirect(new URL(next, request.url));
-      console.error('Auth code exchange failed:', error.message);
+      if (!error) verified = true;
+      else console.error('Auth code exchange failed:', error.message);
     } else if (tokenHash && type && EMAIL_OTP_TYPES.includes(type)) {
       const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-      if (!error) return NextResponse.redirect(new URL(next, request.url));
-      console.error('Auth token verification failed:', error.message);
+      if (!error) verified = true;
+      else console.error('Auth token verification failed:', error.message);
+    }
+
+    if (verified) {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) console.error('Could not read confirmed user after auth link:', error.message);
+      if (data.user) await sendWelcomeEmailIfConfirmed(data.user);
+      return NextResponse.redirect(new URL(next, request.url));
     }
   }
 
